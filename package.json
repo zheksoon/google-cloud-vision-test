@@ -2,9 +2,13 @@
   "name": "google-cloud-vision-test",
   "version": "1.0.0",
   "description": "",
+  "private": true,
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "monitor": "nodemon app.js",
+    "deploy": "gcloud app deploy app.yaml",
+    "test": "mocha test/index.js -t 30000"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +16,15 @@
   "dependencies": {
     "express": "^4.14.0",
     "google-cloud": "^0.44.0"
+  },
+  "semistandard": {
+    "globals": [
+      "after",
+      "afterEach",
+      "before",
+      "beforeEach",
+      "describe",
+      "it"
+    ]
   }
 }
