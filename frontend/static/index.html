@@ -1,9 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title></title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>Face recognition</title>
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<style>
+		.hidden {
+			display: none;
+		}
+		.image-upload {
+			margin: 10px;
+			text-align: center;
+		}
+		.image-upload-link,
+		.try-again-link {
+			text-decoration: none !important;
+			color: #009ADF;
+			display: inline-block;
+			width: 100%;
+		}
+		.image-upload-link > img {
+			display: inline-block;
+		}
+		#image-upload-button {
+			position: absolute;
+			width: 0px;
+			height: 0px;
+			visibility: hidden;
+		}
+		.target-image-wrapper {
+			position: relative;
+		}
+		.target-image {
+			width: 100%;
+		}
+		.face-squares {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+		}
+		.face-square {
+			position: absolute;
+			border: 4px #009ADF solid;
+		}
+	</style>
 </head>
 <body>
-	<h1>Hello, World!</h1>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 col-md-6 col-md-offset-3">
+				<!-- File uploader -->
+				<div class="image-upload">
+					<a class="image-upload-link" href="javascript:void 0">
+						<img src="drag-drop.png" alt="Click to upload image">
+						<h2>Click to upload photo or image</h2>
+					</a>
+					<h2 class="upload-error hidden"></h2>
+					<input id="image-upload-button" type="file" name="image" accept="image/*">
+				</div>
+				<!-- Face detector -->
+				<div class="face-detector hidden">
+					<div class="target-image-wrapper">
+						<img alt="Image" class="target-image">
+						<div class="face-squares"></div>
+					</div>
+					<a href="javascript:void 0" class="try-again-link">Try again?</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		var $imageUpload = $('.image-upload');
+		var $imageUploadLink = $('.image-upload-link');
+		var $imageUploadButton = $('#image-upload-button');
+		var $uploadError = $('.upload-error');
+		var $faceDetector = $('.face-detector');
+		var $targetImage = $('.target-image');
+		var $faceSquares = $('.face-squares');
+		var $tryAgainLink = $('.try-again-link');
+
+		$imageUploadLink.click(function() {
+			$imageUploadButton.click();
+		});
+
+		$tryAgainLink.click(function() {
+			$imageUploadButton.val('');
+			$faceDetector.toggleClass('hidden');
+			$imageUpload.toggleClass('hidden');
+		});
+
+		$imageUploadButton.on('change', function() {
+			var imageFile = $imageUploadButton[0].files[0];
+
+			var imageReader = new FileReader();
+			imageReader.onload = function(e) {
+				$targetImage.attr('src', e.target.result);
+			}
+			imageReader.readAsDataURL(imageFile);
+
+			var formData = new FormData();
+			formData.append('image', imageFile);
+			
+			$.ajax({
+				url: '/faces',
+				type: 'POST',
+				data: formData,
+				processData: false,
+				contentType: false,
+			}).then(function(response) {
+				$uploadError.addClass('hidden');
+				$imageUpload.toggleClass('hidden');
+				$faceDetector.toggleClass('hidden');
+
+				var faces = response.faces;
+				var dimensions = response.dimensions;
+
+				var facesSquaresHtml = '';
+				for (var i = 0; i < faces.length; i++) {
+					var face = faces[i];
+					var faceSquare = face.bounds.face;
+					var faceSquareNormalized = {
+						top: 	100 * faceSquare[0].y / dimensions.height,
+						left: 	100 * faceSquare[0].x / dimensions.width,
+						width: 	100 * (faceSquare[2].x - faceSquare[0].x) / dimensions.width,
+						height:	100 * (faceSquare[2].y - faceSquare[0].y) / dimensions.height,
+					}
+					facesSquaresHtml += `
+						<div class="face-square" style="
+							top: 	${faceSquareNormalized.top}%;
+							left: 	${faceSquareNormalized.left}%;
+							width: 	${faceSquareNormalized.width}%;
+							height:	${faceSquareNormalized.height}%;
+						"></div>
+					`;
+				}
+				$faceSquares.html(facesSquaresHtml);
+
+			}).catch(function(err) {
+				$uploadError.removeClass('hidden').text('err');
+			})
+		})
+	});
+	</script>
 </body>
 </html>
